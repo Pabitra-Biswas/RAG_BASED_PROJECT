@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG System Interface</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        h1, h2 {
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        input[type="file"], input[type="text"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+        button {
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .response-area {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            white-space: pre-wrap; /* Helps in formatting the JSON response */
+            word-wrap: break-word;
+            min-height: 50px;
+            font-family: "Courier New", Courier, monospace;
+        }
+        .spinner {
+            display: none;
+            margin: 10px auto;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #007bff;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Document RAG System</h1>
+
+        <!-- Section for Uploading Documents -->
+        <div class="card">
+            <h2>1. Upload a PDF Document</h2>
+            <form id="uploadForm">
+                <label for="pdfFile">Select a PDF file:</label>
+                <input type="file" id="pdfFile" name="file" accept="application/pdf" required>
+                <button type="submit">Upload Document</button>
+            </form>
+            <div class="spinner" id="uploadSpinner"></div>
+            <div class="response-area" id="uploadResponse">Awaiting upload...</div>
+        </div>
+
+        <!-- Section for Asking Questions -->
+        <div class="card">
+            <h2>2. Ask a Question</h2>
+            <form id="queryForm">
+                <label for="queryText">Your question:</label>
+                <input type="text" id="queryText" name="query" placeholder="e.g., What is the main topic of the document?" required>
+                <button type="submit">Ask Agent</button>
+            </form>
+            <div class="spinner" id="querySpinner"></div>
+            <div class="response-area" id="queryResponse">Awaiting query...</div>
+        </div>
+    </div>
+
+<script>
+    // Get references to the HTML elements
+    const uploadForm = document.getElementById('uploadForm');
+    const pdfFile = document.getElementById('pdfFile');
+    const uploadResponse = document.getElementById('uploadResponse');
+    const uploadSpinner = document.getElementById('uploadSpinner');
+
+    const queryForm = document.getElementById('queryForm');
+    const queryText = document.getElementById('queryText');
+    const queryResponse = document.getElementById('queryResponse');
+    const querySpinner = document.getElementById('querySpinner');
+
+    // Handle the file upload form submission
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); // Prevent the default form submission (page reload)
+
+        const formData = new FormData();
+        formData.append('file', pdfFile.files[0]);
+
+        uploadResponse.textContent = 'Uploading and processing...';
+        uploadSpinner.style.display = 'block';
+
+        try {
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                // If the response is not successful, show the error detail
+                throw new Error(result.detail || `HTTP error! Status: ${response.status}`);
+            }
+
+            // Display the success response from the server
+            uploadResponse.textContent = JSON.stringify(result, null, 2);
+
+        } catch (error) {
+            // Display any errors that occur during the fetch
+            uploadResponse.textContent = `Error: ${error.message}`;
+        } finally {
+            uploadSpinner.style.display = 'none';
+        }
+    });
+
+    // Handle the query form submission
+    queryForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // Use FormData to easily handle form fields
+        const formData = new FormData();
+        formData.append('query', queryText.value);
+
+        queryResponse.textContent = 'Thinking...';
+        querySpinner.style.display = 'block';
+
+        try {
+            const response = await fetch('/query', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(result.detail || `HTTP error! Status: ${response.status}`);
+            }
+
+            // Display just the agent's answer in a more readable format
+            queryResponse.textContent = result.answer;
+
+        } catch (error) {
+            queryResponse.textContent = `Error: ${error.message}`;
+        } finally {
+            querySpinner.style.display = 'none';
+        }
+    });
+</script>
+
+</body>
+</html>

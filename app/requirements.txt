@@ -20,6 +20,10 @@ langchain-chroma
 chromadb
 python-multipart
 
+
+
 # For Metadata (if using a relational DB)
 # sqlalchemy
 # psycopg2-binary
+google-cloud-storage
+Jinja2

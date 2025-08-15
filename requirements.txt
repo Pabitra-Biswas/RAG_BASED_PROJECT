@@ -24,3 +24,4 @@ python-multipart
 # sqlalchemy
 # psycopg2-binary
 google-cloud-storage
+Jinja2
