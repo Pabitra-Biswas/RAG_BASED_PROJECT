@@ -1,0 +1,26 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-dotenv
+
+# For Document Ingestion
+pypdf
+
+# For RAG Pipeline
+langchain
+google-generativeai
+sentence-transformers
+
+langchain-community
+langchain-google-genai  # Or langchain-openai
+langchain-huggingface
+langchain-chroma
+
+# Vector Database Client
+chromadb
+python-multipart
+
+# For Metadata (if using a relational DB)
+# sqlalchemy
+# psycopg2-binary
+google-cloud-storage
