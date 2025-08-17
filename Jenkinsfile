@@ -6,8 +6,7 @@ pipeline {
         GCP_PROJECT = 'my-bigquery-test-466512'
         GCLOUD_PATH = "/var/jenkins/google-cloud-sdk/bin"
 
-        // --- FIXED: Changed GCS_BUCKET to GCS_BUCKET_NAME to match your config file ---
-        // These IDs must match the credentials you create in the Jenkins UI.
+
         GCS_BUCKET_NAME = credentials('gcs-bucket-name-cred')
         GOOGLE_API_KEY = credentials('google-api-key-cred')
         CHROMA_PERSIST_DIRECTORY = './chroma_db_storage_test'
@@ -27,7 +26,7 @@ pipeline {
             steps {
                 script {
                     echo 'Setting up our Virtual Environment and installing dependencies'
-                    // Switched to requirements.txt to match Dockerfile for consistency
+                    
                     sh '''
                     python -m venv $VENV_DIR
                     . $VENV_DIR/bin/activate
