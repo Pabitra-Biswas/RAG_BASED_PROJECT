@@ -116,7 +116,6 @@
     </div>
 
 <script>
-    // Get references to the HTML elements
     const uploadForm = document.getElementById('uploadForm');
     const pdfFile = document.getElementById('pdfFile');
     const uploadResponse = document.getElementById('uploadResponse');
@@ -129,8 +128,7 @@
 
     // Handle the file upload form submission
     uploadForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); // Prevent the default form submission (page reload)
-
+        e.preventDefault(); 
         const formData = new FormData();
         formData.append('file', pdfFile.files[0]);
 
@@ -142,20 +140,18 @@
                 method: 'POST',
                 body: formData,
             });
-
             const result = await response.json();
-
             if (!response.ok) {
-                // If the response is not successful, show the error detail
-                throw new Error(result.detail || `HTTP error! Status: ${response.status}`);
+                // <-- CHANGE 1: Throw the entire error object from the server
+                throw result; 
             }
-
-            // Display the success response from the server
             uploadResponse.textContent = JSON.stringify(result, null, 2);
-
         } catch (error) {
-            // Display any errors that occur during the fetch
-            uploadResponse.textContent = `Error: ${error.message}`;
+            // <-- CHANGE 2: Better error display logic
+            console.error("Upload failed:", error); // Log the full error to the browser console for debugging
+            // FastAPI errors often have a 'detail' property. Use it, otherwise show the whole object.
+            const errorMessage = error.detail || JSON.stringify(error);
+            uploadResponse.textContent = `Error: ${errorMessage}`;
         } finally {
             uploadSpinner.style.display = 'none';
         }
@@ -165,9 +161,10 @@
     queryForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // Use FormData to easily handle form fields
-        const formData = new FormData();
-        formData.append('query', queryText.value);
+        // <-- CHANGE 3: The backend now expects JSON for the query, not FormData
+        const queryData = {
+            query: queryText.value
+        };
 
         queryResponse.textContent = 'Thinking...';
         querySpinner.style.display = 'block';
@@ -175,20 +172,25 @@
         try {
             const response = await fetch('/query', {
                 method: 'POST',
-                body: formData,
+                // <-- CHANGE 4: Set the content type to JSON
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                // <-- CHANGE 5: Send the data as a JSON string
+                body: JSON.stringify(queryData) 
             });
 
             const result = await response.json();
-            
             if (!response.ok) {
-                throw new Error(result.detail || `HTTP error! Status: ${response.status}`);
+                // <-- CHANGE 1 (Repeated): Throw the entire error object from the server
+                throw result;
             }
-
-            // Display just the agent's answer in a more readable format
             queryResponse.textContent = result.answer;
-
         } catch (error) {
-            queryResponse.textContent = `Error: ${error.message}`;
+            // <-- CHANGE 2 (Repeated): Better error display logic
+            console.error("Query failed:", error); // Log the full error to the browser console for debugging
+            const errorMessage = error.detail || JSON.stringify(error);
+            queryResponse.textContent = `Error: ${errorMessage}`;
         } finally {
             querySpinner.style.display = 'none';
         }
