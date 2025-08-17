@@ -6,9 +6,9 @@ pipeline {
         GCP_PROJECT = 'my-bigquery-test-466512'
         GCLOUD_PATH = "/var/jenkins/google-cloud-sdk/bin"
 
-        // --- CHANGE 1: Define Jenkins credentials for your secrets ---
+        // --- FIXED: Changed GCS_BUCKET to GCS_BUCKET_NAME to match your config file ---
         // These IDs must match the credentials you create in the Jenkins UI.
-        GCS_BUCKET = credentials('gcs-bucket-name-cred')
+        GCS_BUCKET_NAME = credentials('gcs-bucket-name-cred')
         GOOGLE_API_KEY = credentials('google-api-key-cred')
     }
 
@@ -37,21 +37,23 @@ pipeline {
             }
         }
 
-        // --- CHANGE 2: Add optional testing stage ---
+        // --- IMPROVED: Better test validation ---
         stage('Run Tests (Optional)') {
-            when {
-                // Only run tests if test files exist
-                expression { fileExists('tests/') }
-            }
             steps {
                 script {
                     echo 'Running tests...'
                     sh '''
                     . $VENV_DIR/bin/activate
-                    # Add your test commands here, e.g.:
-                    # python -m pytest tests/ -v
-                    # For now, just validate the app can import
+                    # Validate that all required environment variables are available
+                    echo "Validating environment variables..."
+                    echo "GCS_BUCKET_NAME is set: ${GCS_BUCKET_NAME:+yes}"
+                    echo "GOOGLE_API_KEY is set: ${GOOGLE_API_KEY:+yes}"
+                    
+                    # Test app import with proper environment
                     python -c "from app.main import app; print('App imports successfully')"
+                    
+                    # If you have actual tests, uncomment the line below:
+                    # python -m pytest tests/ -v
                     '''
                 }
             }
@@ -62,7 +64,6 @@ pipeline {
                 withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                     script {
                         echo 'Building Docker Image and Pushing to GCR'
-                        // --- CHANGE 3: Add error handling and better logging ---
                         sh '''
                         export PATH=$PATH:${GCLOUD_PATH}
                         
@@ -93,7 +94,7 @@ pipeline {
                 withCredentials([file(credentialsId: 'gcp-key', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                     script {
                         echo 'Deploying to Google Cloud Run'
-                        // --- CHANGE 4: Enhanced deployment with better configuration ---
+                        // --- FIXED: Changed GCS_BUCKET to GCS_BUCKET_NAME in the deployment ---
                         sh """
                         export PATH=\$PATH:${GCLOUD_PATH}
                         
@@ -113,7 +114,7 @@ pipeline {
                           --timeout=900 \\
                           --max-instances=10 \\
                           --concurrency=80 \\
-                          --set-env-vars="GCS_BUCKET_NAME=${GCS_BUCKET},GOOGLE_API_KEY=${GOOGLE_API_KEY},CHROMA_PERSIST_DIRECTORY=/code/chroma_db_storage"
+                          --set-env-vars="GCS_BUCKET_NAME=${GCS_BUCKET_NAME},GOOGLE_API_KEY=${GOOGLE_API_KEY},CHROMA_PERSIST_DIRECTORY=/code/chroma_db_storage"
                         
                         echo "Getting service URL..."
                         SERVICE_URL=\$(gcloud run services describe gcp-mlops-project --region=us-central1 --format="value(status.url)")
@@ -125,7 +126,6 @@ pipeline {
         }
     }
 
-    // --- CHANGE 5: Add post-build actions ---
     post {
         always {
             script {
