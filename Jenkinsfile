@@ -10,6 +10,7 @@ pipeline {
         // These IDs must match the credentials you create in the Jenkins UI.
         GCS_BUCKET_NAME = credentials('gcs-bucket-name-cred')
         GOOGLE_API_KEY = credentials('google-api-key-cred')
+        CHROMA_PERSIST_DIRECTORY = './chroma_db_storage_test'
     }
 
     stages {
