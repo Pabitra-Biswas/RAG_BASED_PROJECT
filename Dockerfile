@@ -17,22 +17,14 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 # Step 6: Copy your application code and other necessary assets
 COPY ./app /code/app
 COPY ./templates /code/templates
-# Note: Copying the initial DB state is fine, but for production,
-# data should be managed via volumes or a managed database.
 COPY ./chroma_db_storage /code/chroma_db_storage 
 
-# --- CHANGE 1: Set a default PORT environment variable ---
-# This makes the container work correctly for local "docker run" commands.
-# It also serves as documentation for the port the app uses.
+# Step 7: Set a default PORT environment variable for local runs
 ENV PORT=8000
 
-# --- CHANGE 2: Expose the PORT variable ---
-# This tells Docker to expose the port defined by the $PORT variable.
-# It's a good practice for clarity.
+# Step 8: Expose the PORT variable
 EXPOSE $PORT
 
-# --- CHANGE 3: Use the PORT environment variable in the run command ---
-# This is the most critical change.
-# On Cloud Run, the $PORT variable will be automatically set to 8080.
-# Locally, it will use the default value of 8000 that we set above.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "$PORT"]
+# --- CRITICAL FIX: Use the 'shell' form of CMD ---
+# This allows the shell to properly substitute the $PORT variable.
+CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT
