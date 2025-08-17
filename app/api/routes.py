@@ -9,7 +9,18 @@ from app.core.config import settings
 router = APIRouter()
 
 # Instantiate the GCS client
-storage_client = storage.Client()
+# storage_client = storage.Client()
+
+from typing import Optional
+
+_storage_client: Optional[storage.Client] = None
+
+def get_storage_client() -> storage.Client:
+    """Get or create a storage client instance."""
+    global _storage_client
+    if _storage_client is None:
+        _storage_client = storage.Client()
+    return _storage_client
 
 # <-- CHANGE: Add the response_model to the decorator for validation and documentation
 @router.post("/upload", response_model=UploadResponse)
@@ -22,7 +33,9 @@ async def upload_document(file: UploadFile = File(...)):
     
     try:
         # 1. Get a reference to the bucket
-        bucket = storage_client.bucket(settings.GCS_BUCKET_NAME)
+        # New usage:
+        storage_client = get_storage_client()
+        bucket = storage_client.bucket("bucket-name")
         
         # 2. Create a blob and upload the file
         blob = bucket.blob(file.filename)
