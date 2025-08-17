@@ -1,5 +1,6 @@
 import os
 import tempfile
+from typing import Optional
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import Chroma
@@ -8,30 +9,49 @@ from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from google.cloud import storage
 from app.core.config import settings
 
-# --- CHANGE: Make the database path configurable via an environment variable ---
-# This allows you to easily change the path for Docker/production without changing code.
-# It defaults to the old value if the environment variable isn't set.
-# CHROMA_PERSIST_DIRECTORY = os.environ.get("CHROMA_PERSIST_DIRECTORY", "./chroma_db_storage")
-
 # Initialize the embedding model
 embedding_function = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
-# Initialize GCS client to be used later
-# This will automatically authenticate using a service account when run on GCP or Docker
-storage_client = storage.Client()
+# --- CHANGE: Use lazy initialization for GCS client to avoid authentication issues during import ---
+# Global variable to hold the client instance
+_storage_client: Optional[storage.Client] = None
 
-# Initialize ChromaDB client with the new configurable path
-chroma_client = Chroma(
-    collection_name="rag_collection",
-    embedding_function=embedding_function,
-    persist_directory=settings.CHROMA_PERSIST_DIRECTORY
-)
+def get_storage_client() -> storage.Client:
+    """
+    Get or create a storage client instance.
+    This lazy initialization prevents authentication errors during app startup/testing.
+    """
+    global _storage_client
+    if _storage_client is None:
+        _storage_client = storage.Client()
+    return _storage_client
+
+# --- CHANGE: Use lazy initialization for ChromaDB client as well ---
+_chroma_client: Optional[Chroma] = None
+
+def get_chroma_client() -> Chroma:
+    """
+    Get or create a ChromaDB client instance.
+    This lazy initialization allows for better testing and startup performance.
+    """
+    global _chroma_client
+    if _chroma_client is None:
+        _chroma_client = Chroma(
+            collection_name="rag_collection",
+            embedding_function=embedding_function,
+            persist_directory=settings.CHROMA_PERSIST_DIRECTORY
+        )
+    return _chroma_client
 
 def process_and_store_document(file_path_or_uri: str, document_id: str):
     """
     Loads a document from either a local path or a GCS URI,
     then chunks and stores it in the vector database.
     """
+    
+    # Get clients using lazy initialization
+    storage_client = get_storage_client()
+    chroma_client = get_chroma_client()
     
     # --- CHANGE: Add logic to handle GCS URIs ---
     # Check if the input is a GCS path
